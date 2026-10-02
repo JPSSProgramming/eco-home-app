@@ -1,0 +1,121 @@
+# =========================
+# Flutter / Dart
+# =========================
+
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+build/
+coverage/
+
+# Flutter generated files
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# =========================
+# IDE
+# =========================
+
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# =========================
+# Android
+# =========================
+
+android/.gradle/
+android/local.properties
+android/.idea/
+android/app/debug/
+android/app/profile/
+android/app/release/
+
+# Generated Android files
+android/.cxx/
+android/captures/
+
+# =========================
+# iOS
+# =========================
+
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+
+# Xcode generated files
+ios/Runner.xcworkspace/xcuserdata/
+ios/Runner.xcodeproj/xcuserdata/
+ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
+
+# =========================
+# macOS
+# =========================
+
+macos/Pods/
+macos/Flutter/ephemeral/
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/Flutter/ephemeral/
+
+# Xcode generated files
+macos/Runner.xcodeproj/xcuserdata/
+macos/Runner.xcodeproj/project.xcworkspace/xcuserdata/
+
+# =========================
+# Windows
+# =========================
+
+windows/flutter/ephemeral/
+
+# =========================
+# Linux
+# =========================
+
+linux/flutter/ephemeral/
+
+# =========================
+# Web
+# =========================
+
+# Nothing here:
+# web/ is part of the source code and should be committed.
+
+# =========================
+# OS generated files
+# =========================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# Logs / temporary files
+# =========================
+
+*.log
+*.tmp
+*.temp
+
+# =========================
+# Environment / secrets
+# =========================
+
+.env
+.env.*
+!.env.example
+
+# =========================
+# Build artifacts
+# =========================
+
+*.apk
+*.aab
+*.ipa
+*.app
