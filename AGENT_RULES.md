@@ -59,3 +59,15 @@ Before starting work on any task, always consult the project rules and ask quest
 
 - Use only English or Ukrainian in chats, depending on the language the user is using.
 - The use of Russian is strictly prohibited.
+
+## 5. Architecture
+
+When working on code, always maintain a logical and organized file structure. If you identify a file that can be logically split into components or separate concerns, you must do so. Do not keep everything in a single file when a modular structure would be more appropriate. Follow these principles:
+
+- **Separation of concerns:** Split code into logical components (models, widgets, screens, services, etc.)
+- **Single responsibility:** Each file should have a clear, focused purpose
+- **Logical folder structure:** Organize files into appropriate directories based on their function
+- **Avoid monolithic files:** Do not create or maintain large files that contain multiple unrelated components
+- **Modularity:** Design components that can be reused and tested independently
+
+If a task requires creating new files or restructuring existing code to follow proper architecture, do so before implementing the feature.
