@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'room.dart';
+import 'models/room.dart';
+import 'widgets/room_card.dart';
+import 'widgets/overview_card.dart';
+import 'widgets/statistics_card.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,88 +33,6 @@ class SmartHomeDashboard extends StatefulWidget {
 
 class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
   static const double targetTemperature = 21.0;
-
-  Color getStatusColor(String status) {
-    if (status == "Heating") {
-      return Colors.orange;
-    } else if (status == "Too Cold") {
-      return Colors.blue;
-    } else if (status == "Too Hot") {
-      return Colors.red;
-    } else {
-      return Colors.green;
-    }
-  }
-
-  Widget _buildStatRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          color: Theme.of(context).colorScheme.primary,
-          size: 20,
-        ),
-        const SizedBox(width: 12),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[700],
-          ),
-        ),
-        const Spacer(),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDeviceRow(
-    IconData icon,
-    String label,
-    bool isOn,
-    Color activeColor,
-    VoidCallback onToggle,
-  ) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isOn ? activeColor.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            color: isOn ? activeColor : Colors.grey,
-            size: 24,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: isOn ? activeColor : Colors.grey[600],
-          ),
-        ),
-        const Spacer(),
-        Switch(
-          value: isOn,
-          onChanged: (bool value) {
-            onToggle();
-          },
-          activeTrackColor: activeColor,
-        ),
-      ],
-    );
-  }
 
   final List<Room> rooms = <Room>[
     Room(
@@ -205,40 +126,9 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.home,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 28,
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Home Overview',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildStatRow(Icons.meeting_room, 'Rooms', '${rooms.length}'),
-                  const SizedBox(height: 8),
-                  _buildStatRow(Icons.thermostat, 'Avg Temperature', '${avgTemp.toStringAsFixed(1)}°C'),
-                ],
-              ),
-            ),
+          OverviewCard(
+            roomCount: rooms.length,
+            averageTemperature: avgTemp,
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -254,179 +144,20 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
           ...rooms.asMap().entries.map((entry) {
             final int index = entry.key;
             final Room room = entry.value;
-            return Card(
-              elevation: 3,
-              margin: const EdgeInsets.only(bottom: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).colorScheme.surface,
-                      Theme.of(context).colorScheme.surface.withValues(alpha: 0.95),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: getStatusColor(room.status).withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.bedroom_parent,
-                              color: getStatusColor(room.status),
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              room.name,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.thermostat,
-                            color: getStatusColor(room.status),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${room.temperature}°C',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: getStatusColor(room.status),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: getStatusColor(room.status),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              room.status,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      _buildDeviceRow(
-                        Icons.lightbulb,
-                        'Light',
-                        room.lightOn,
-                        Colors.amber,
-                        () => toggleRoomLight(index),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildDeviceRow(
-                        Icons.whatshot,
-                        'Heater',
-                        room.heaterOn,
-                        Colors.red,
-                        () => toggleRoomHeater(index),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            return RoomCard(
+              room: room,
+              index: index,
+              onLightToggle: () => toggleRoomLight(index),
+              onHeaterToggle: () => toggleRoomHeater(index),
             );
           }),
           const SizedBox(height: 16),
-          Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.analytics,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 28,
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Home Statistics',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildStatRow(Icons.meeting_room, 'Rooms', '${rooms.length}'),
-                  const SizedBox(height: 8),
-                  _buildStatRow(Icons.thermostat, 'Avg Temperature', '${avgTemp.toStringAsFixed(1)}°C'),
-                  const SizedBox(height: 8),
-                  _buildStatRow(Icons.lightbulb, 'Lights On', '${stats["Lights"]}'),
-                  const SizedBox(height: 8),
-                  _buildStatRow(Icons.whatshot, 'Heaters On', '${stats["Heaters"]}'),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Colors.grey[600],
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Selected: ${selectedRoom ?? "No room selected"}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          StatisticsCard(
+            roomCount: rooms.length,
+            averageTemperature: avgTemp,
+            lightsOn: stats["Lights"]!,
+            heatersOn: stats["Heaters"]!,
+            selectedRoom: selectedRoom,
           ),
         ],
       ),
