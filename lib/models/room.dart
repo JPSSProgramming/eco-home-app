@@ -1,27 +1,31 @@
 class Room {
   String name;
   double temperature;
-  bool lightOn;
-  bool heaterOn;
+  double waterTemperature;
+  bool boilerOn;
+  bool floorHeatingOn;
 
   Room({
     required this.name,
     required this.temperature,
-    required this.lightOn,
-    required this.heaterOn,
+    required this.waterTemperature,
+    required this.boilerOn,
+    required this.floorHeatingOn,
   });
 
-  void toggleLight() {
-    lightOn = !lightOn;
+  void toggleBoiler() {
+    boilerOn = !boilerOn;
   }
 
-  void toggleHeater() {
-    heaterOn = !heaterOn;
+  void toggleFloorHeating() {
+    floorHeatingOn = !floorHeatingOn;
   }
 
   String get status {
-    if (heaterOn) {
+    if (boilerOn) {
       return "Heating";
+    } else if (floorHeatingOn) {
+      return "Floor Heating";
     } else if (temperature < 20) {
       return "Too Cold";
     } else if (temperature > 24) {

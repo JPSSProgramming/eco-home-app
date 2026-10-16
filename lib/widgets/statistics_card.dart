@@ -4,16 +4,16 @@ import 'stat_row.dart';
 class StatisticsCard extends StatelessWidget {
   final int roomCount;
   final double averageTemperature;
-  final int lightsOn;
-  final int heatersOn;
+  final int boilersOn;
+  final int floorHeatingOn;
   final String? selectedRoom;
 
   const StatisticsCard({
     super.key,
     required this.roomCount,
     required this.averageTemperature,
-    required this.lightsOn,
-    required this.heatersOn,
+    required this.boilersOn,
+    required this.floorHeatingOn,
     required this.selectedRoom,
   });
 
@@ -55,9 +55,9 @@ class StatisticsCard extends StatelessWidget {
               '${averageTemperature.toStringAsFixed(1)}°C',
             ),
             const SizedBox(height: 8),
-            buildStatRow(Icons.lightbulb, 'Lights On', '$lightsOn'),
+            buildStatRow(Icons.whatshot, 'Boilers On', '$boilersOn'),
             const SizedBox(height: 8),
-            buildStatRow(Icons.whatshot, 'Heaters On', '$heatersOn'),
+            buildStatRow(Icons.grid_on, 'Floor Heating On', '$floorHeatingOn'),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),

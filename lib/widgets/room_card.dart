@@ -6,15 +6,15 @@ import 'device_row.dart';
 class RoomCard extends StatelessWidget {
   final Room room;
   final int index;
-  final VoidCallback onLightToggle;
-  final VoidCallback onHeaterToggle;
+  final VoidCallback onBoilerToggle;
+  final VoidCallback onFloorHeatingToggle;
 
   const RoomCard({
     super.key,
     required this.room,
     required this.index,
-    required this.onLightToggle,
-    required this.onHeaterToggle,
+    required this.onBoilerToggle,
+    required this.onFloorHeatingToggle,
   });
 
   @override
@@ -78,11 +78,26 @@ class RoomCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '${room.temperature}°C',
+                    'Air: ${room.temperature}°C',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: getStatusColor(room.status),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Icon(
+                    Icons.water_drop,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Water: ${room.waterTemperature}°C',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -108,19 +123,19 @@ class RoomCard extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               buildDeviceRow(
-                Icons.lightbulb,
-                'Light',
-                room.lightOn,
-                Colors.amber,
-                onLightToggle,
+                Icons.whatshot,
+                'Boiler',
+                room.boilerOn,
+                Colors.orange,
+                onBoilerToggle,
               ),
               const SizedBox(height: 12),
               buildDeviceRow(
-                Icons.whatshot,
-                'Heater',
-                room.heaterOn,
-                Colors.red,
-                onHeaterToggle,
+                Icons.grid_on,
+                'Floor Heating',
+                room.floorHeatingOn,
+                Colors.purple,
+                onFloorHeatingToggle,
               ),
             ],
           ),

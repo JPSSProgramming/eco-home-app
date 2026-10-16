@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mini Smart Home',
+      title: 'Heating Control',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
@@ -36,22 +36,25 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
 
   final List<Room> rooms = <Room>[
     Room(
-      name: "Living Room",
-      temperature: 22,
-      lightOn: true,
-      heaterOn: false,
-    ),
-    Room(
-      name: "Bedroom",
-      temperature: 19,
-      lightOn: false,
-      heaterOn: true,
-    ),
-    Room(
       name: "Kitchen",
-      temperature: 23,
-      lightOn: true,
-      heaterOn: false,
+      temperature: 22,
+      waterTemperature: 45,
+      boilerOn: true,
+      floorHeatingOn: true,
+    ),
+    Room(
+      name: "Bathroom",
+      temperature: 24,
+      waterTemperature: 50,
+      boilerOn: true,
+      floorHeatingOn: true,
+    ),
+    Room(
+      name: "Living Room",
+      temperature: 21,
+      waterTemperature: 40,
+      boilerOn: false,
+      floorHeatingOn: false,
     ),
   ];
 
@@ -66,33 +69,33 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
   }
 
   Map<String, int> calculateDeviceStats(List<Room> rooms) {
-    int lightsOn = 0;
-    int heatersOn = 0;
+    int boilersOn = 0;
+    int floorHeatingOn = 0;
 
     for (final room in rooms) {
-      if (room.lightOn) {
-        lightsOn = lightsOn + 1;
+      if (room.boilerOn) {
+        boilersOn = boilersOn + 1;
       }
-      if (room.heaterOn) {
-        heatersOn = heatersOn + 1;
+      if (room.floorHeatingOn) {
+        floorHeatingOn = floorHeatingOn + 1;
       }
     }
 
     return {
-      "Lights": lightsOn,
-      "Heaters": heatersOn,
+      "Boilers": boilersOn,
+      "FloorHeating": floorHeatingOn,
     };
   }
 
-  void toggleRoomLight(int index) {
+  void toggleRoomBoiler(int index) {
     setState(() {
-      rooms[index].toggleLight();
+      rooms[index].toggleBoiler();
     });
   }
 
-  void toggleRoomHeater(int index) {
+  void toggleRoomFloorHeating(int index) {
     setState(() {
-      rooms[index].toggleHeater();
+      rooms[index].toggleFloorHeating();
     });
   }
 
@@ -100,9 +103,9 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
     setState(() {
       for (final room in rooms) {
         if (room.temperature < targetTemperature) {
-          room.heaterOn = true;
+          room.boilerOn = true;
         } else {
-          room.heaterOn = false;
+          room.boilerOn = false;
         }
       }
     });
@@ -116,7 +119,7 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Mini Smart Home',
+          'Heating Control',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -134,7 +137,7 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
           ElevatedButton.icon(
             onPressed: autoHeating,
             icon: const Icon(Icons.autorenew),
-            label: const Text('Auto Heating'),
+            label: const Text('Auto Boiler'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               textStyle: const TextStyle(fontSize: 16),
@@ -147,16 +150,16 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
             return RoomCard(
               room: room,
               index: index,
-              onLightToggle: () => toggleRoomLight(index),
-              onHeaterToggle: () => toggleRoomHeater(index),
+              onBoilerToggle: () => toggleRoomBoiler(index),
+              onFloorHeatingToggle: () => toggleRoomFloorHeating(index),
             );
           }),
           const SizedBox(height: 16),
           StatisticsCard(
             roomCount: rooms.length,
             averageTemperature: avgTemp,
-            lightsOn: stats["Lights"]!,
-            heatersOn: stats["Heaters"]!,
+            boilersOn: stats["Boilers"]!,
+            floorHeatingOn: stats["FloorHeating"]!,
             selectedRoom: selectedRoom,
           ),
         ],
