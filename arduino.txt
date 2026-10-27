@@ -1,0 +1,501 @@
+#include <DallasTemperature.h>
+#include <OneWire.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// Data wire is conntec to the Arduino digital pin 3
+#define ONE_WIRE_BUS 3
+// Setup a oneWire instance to communicate with any OneWire devices
+OneWire oneWire(ONE_WIRE_BUS);
+// Pass our oneWire reference to Dallas Temperature sensor
+DallasTemperature sensors(&oneWire);
+
+// IR Receiver is conntec to the Arduino digital pin 1
+#define IR_RES 1
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+const uint8_t BUTTON_PROTECTION = 10;
+const uint8_t PIN_button_SET = 4;   //перша кнопка - режим
+const uint8_t PIN_button_STEP = 8;  //друга кнопка - вибір
+// const uint8_t toneBazzerPin = 3;        //звук/
+const uint8_t relayPin = 12;     //риле
+const uint8_t yellowLedPin = 5;  //жовта лампа
+// const uint8_t servoDorPin = 9;          //мотор дор
+// const uint8_t servoWindowPin = 10;      //
+// const uint8_t whiteLedPin = 13;         //мотор вікна
+// const uint8_t photocellSensorPin = A1;  //світло сенсор
+// const uint8_t soilSensorPin = A2;       //грунт
+// const uint8_t steamSensorPin = A3;      //волого сенсор
+
+float timeCorrection = 1.0;
+uint8_t hour = 23;
+uint8_t minute = 3;
+uint8_t second = 15;
+bool isAlarmSet = false;
+uint8_t hourArlam = 23;
+uint8_t minuteArlam = 5;
+
+bool sleepLCD = false;
+bool clear_disp = true;
+uint8_t flag_disp = 0;  // режим виводу: 0-годинник 1-меню 2-підменю
+uint8_t flag_set = 0;   // режим зміни: 0-год 1-хв 2-вихід
+uint8_t punktMenu = 1;
+uint8_t intervalOn = 2;   //хвилин
+uint8_t intervalOff = 5;  //хвилин
+
+bool startHeating = false;
+bool stateRel = HIGH;
+bool stateRelbyHand = false;
+
+String timeToHeatingOnStr = "";
+String timeToHeatingOffStr = "";
+
+float current_temp;
+float alarmLowTemp = 21;
+unsigned long prev1 = 0;
+unsigned long prev2 = 0;
+unsigned long prev3 = 0;
+
+// volatile int inData;
+String inData;
+String help[] = {
+  "time", "time-", "timeTo ?", "timer ?", "timer on", "timer off", "temp",
+  "interval ?", "intervalOn-", "intervalOff-",
+  "rel ?", "rel on", "rel off",
+  "timeCorrection ?", "timeCorrection-"
+};
+
+void setup() {
+  pinMode(2, INPUT);                       //датчик руху
+  pinMode(PIN_button_SET, INPUT_PULLUP);   //перша кнопка - режим
+  pinMode(PIN_button_STEP, INPUT_PULLUP);  //друга кнопка - вибір
+  pinMode(A0, INPUT);                      //гас сенсор
+  pinMode(A2, INPUT);                      //грунто сенсор
+  // pinMode(3, OUTPUT);               //звук
+  pinMode(13, OUTPUT);            //біла лампа
+  pinMode(yellowLedPin, OUTPUT);  //жовта лампа
+  pinMode(relayPin, OUTPUT);      //реле
+  pinMode(7, OUTPUT);             //вентилятор
+  pinMode(6, OUTPUT);             //вентилятор
+
+  lcd.init();
+  lcd.backlight();
+
+  // Start up the library
+  sensors.begin();
+
+  Serial.begin(9600);
+}
+
+void loop() {
+  clock_temp();
+
+  bluetooth();
+
+  check_click_button();
+
+  if (sleepLCD) {
+    sleepDisp();
+  } else {
+    onDisp();
+    switch (flag_disp) {  // режим виводу: 0-годинник 1-меню 2-підменю
+      case 0:
+        {
+          showTime();
+          break;
+        }
+      case 1:
+        {
+          showMenu();
+          break;
+        }
+      case 2:
+        {
+          showSubMenu();
+          break;
+        }
+    }
+  }
+}
+
+void bluetooth() {
+  if (Serial.available() > 0) {
+    inData = Serial.readStringUntil(';');
+  }
+
+  if (inData == "help") {
+    for (int i = 0; i < 14; i++)
+      Serial.println(help[i]);
+  }
+  if (inData == "time") {
+    Serial.println(getTimeStr(hour, minute, second));
+  }
+  if (inData == "time-") {
+    inData.remove(0, 5);
+    String hourStr = getValueFromStr(inData, ':', 0);
+    String minuteStr = getValueFromStr(inData, ':', 1);
+    hour = (uint8_t)hourStr.toInt();
+    minute = (uint8_t)minuteStr.toInt();
+    Serial.println("Done");
+  }
+  if (inData == "timer ?") {
+    Serial.println(isAlarmSet ? ("Timer on - " + getTimeStr(hourArlam, minuteArlam, 100)) : "Timer off");
+  }
+  if (inData == "timer on") {
+    isAlarmSet = true;
+    Serial.println("Done");
+  }
+  if (inData == "timer off") {
+    isAlarmSet = false;
+    Serial.println("Done");
+  }
+  if (inData == "temp") {
+    Serial.println("Temp: " + String(current_temp) + "C");
+  }
+  if (inData == "interval ?") {
+    Serial.println("interval on: " + String(intervalOn));
+    Serial.println("interval off: " + String(intervalOff));
+  }
+  if (inData.startsWith("intervalOn-")) {
+    inData.remove(0, 11);
+    intervalOn = inData.toInt();
+    Serial.println("Done");
+  }
+  if (inData.startsWith("intervalOff-")) {
+    inData.remove(0, 12);
+    intervalOff = inData.toInt();
+    Serial.println("Done");
+  }
+  if (inData == "rel ?") {
+    Serial.println(digitalRead(relayPin) ? "On" : "Off");
+  }
+  if (inData == "rel on") {
+    digitalWrite(relayPin, HIGH);
+    Serial.println("Heating off");
+    stateRelbyHand = true;
+  }
+  if (inData == "rel off") {
+    digitalWrite(relayPin, LOW);
+    Serial.println("Heating on");
+    stateRelbyHand = true;
+  }
+  if (inData == "timeCorrection ?") {
+    Serial.println("Correction: " + String(timeCorrection));
+  }
+  if (inData.startsWith("timeCorrection-")) {
+    inData.remove(0, 15);
+    timeCorrection = inData.toFloat();
+    Serial.println("Done");
+  }
+  if (inData == "timeTo ?") {
+    Serial.println(digitalRead(relayPin) ? ("Time to heating ON - " + timeToHeatingOnStr) : ("Time to heating OFF - " + timeToHeatingOffStr));
+  }
+}
+
+void showSubMenu() {
+  clearDisp();
+  lcd.setCursor(0, 0);
+  // lcd.print("SubMenu-");
+  switch (punktMenu) {
+    case 1:
+      {
+        lcd.print("set Time");
+        lcd.setCursor(0, 1);
+        lcd.print(getTimeStr(hour, minute, second));
+        break;
+      }
+    case 2:
+      {
+        lcd.print("set Relay On");
+        lcd.setCursor(0, 1);
+        lcd.print(getTimeStr(hourArlam, minuteArlam, 100));
+        lcd.print("  On");
+        if (isAlarmSet) lcd.print("+");
+        else lcd.print("-");
+        break;
+      }
+    case 3:
+      {
+        lcd.print("set interval min");
+        lcd.setCursor(0, 1);
+        lcd.print("On:" + String(intervalOn));
+        lcd.print("  Off:" + String(intervalOff));
+        break;
+      }
+    case 4:
+      {
+        lcd.print("this * sec");
+        lcd.setCursor(7, 1);
+        lcd.print(timeCorrection);
+        break;
+      }
+  }
+}
+
+void showMenu() {
+  clearDisp();
+  lcd.setCursor(6, 0);
+  lcd.print("Menu");
+  lcd.setCursor(0, 1);
+  switch (punktMenu) {
+    case 1:
+      {
+        lcd.print("1.Set TIME");
+        break;
+      }
+    case 2:
+      {
+        lcd.print("2.Set Rel Time");
+        break;
+      }
+    case 3:
+      {
+        lcd.print("3.Set interval");
+        break;
+      }
+    case 4:
+      {
+        lcd.print("4.Set correction");
+        break;
+      }
+    case 5:
+      {
+        lcd.print("5.Exit to clock");
+        break;
+      }
+  }
+}
+
+void sleepDisp() {
+  lcd.noDisplay();
+  lcd.noBacklight();
+}
+
+void onDisp() {
+  lcd.display();
+  lcd.backlight();
+}
+
+void clearDisp() {
+  if (clear_disp) {
+    lcd.clear();
+    clear_disp = false;
+  }
+}
+
+String getTimeStr(int h, int m, int s) {
+  String hourStr = "";
+  String minuteStr = "";
+  String secondStr = "";
+
+  if (h < 10) hourStr = "0" + String(h);
+  else hourStr = String(h);
+
+  if (m < 10) minuteStr = "0" + String(m);
+  else minuteStr = String(m);
+
+  if (s < 10) secondStr = ":0" + String(s);
+  else if (s == 100)
+    ;
+  else secondStr = ":" + String(s);
+
+  return hourStr + ":" + minuteStr + secondStr;
+}
+
+String getValueFromStr(String data, char separator, int index) {
+  int found = 0;
+  int strIndex[] = { 0, -1 };
+  int maxIndex = data.length() - 1;
+
+  for (int i = 0; i <= maxIndex && found <= index; i++) {
+    if (data.charAt(i) == separator || i == maxIndex) {
+      found++;
+      strIndex[0] = strIndex[1] + 1;
+      strIndex[1] = (i == maxIndex) ? i + 1 : i;
+    }
+  }
+  return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
+}
+
+void showTime() {
+  clearDisp();
+  lcd.setCursor(0, 0);
+  lcd.print("Time: " + getTimeStr(hour, minute, second));
+  lcd.setCursor(0, 1);
+  lcd.print("Temp: " + String(current_temp) + (char)223 + "C");
+}
+
+void plusOne(uint8_t &item, uint8_t limit) {
+  item++;
+  if (item > limit) {
+    item = 0;
+    clear_disp = true;
+  }
+}
+
+void check_click_button() {
+  if (!sleepLCD && get_button(PIN_button_SET)) {  // що виконує ліва кнопка
+    // flag_disp - режим виводу: 0-годинник 1-меню 2-підменю
+    if (flag_disp == 2) {  // підменю
+      flag_set++;
+      clear_disp = true;
+
+      if ((punktMenu == 4 and flag_set == 1) or ((punktMenu == 1 or punktMenu == 3) and flag_set == 2) or (punktMenu == 2 and flag_set == 3)) {  // повернення в меню
+        flag_set = 0;
+        flag_disp = 1;
+        clear_disp = true;
+      }
+
+    } else {
+      flag_disp++;
+
+      if ((flag_disp == 2 and punktMenu == 5) or flag_disp > 2) {
+        flag_disp = 0;
+        punktMenu = 1;
+      }
+
+      clear_disp = true;
+    }
+  }
+
+  if (get_button(PIN_button_STEP)) {
+    if (flag_disp == 2) {
+
+      if (punktMenu == 1 or punktMenu == 2)  //set time or set timer
+        switch (flag_set) {
+          case 0:
+            {
+              punktMenu == 1 ? plusOne(hour, 23) : plusOne(hourArlam, 23);
+              break;
+            }
+          case 1:
+            {
+              punktMenu == 1 ? plusOne(minute, 59) : plusOne(minuteArlam, 59);
+              break;
+            }
+          case 2:
+            {
+              if (punktMenu == 2) isAlarmSet = !isAlarmSet;
+              break;
+            }
+        }
+      else if (punktMenu == 3)  //set interval
+        switch (flag_set) {
+          case 0:
+            {
+              plusOne(intervalOn, 59);
+              break;
+            }
+          case 1:
+            {
+              plusOne(intervalOff, 59);
+              break;
+            }
+        }
+      else if (punktMenu == 4)  //set correction of one second
+      // plusOne(timeCorrection, 59);
+      {}
+
+    } else if (flag_disp == 0) {
+      sleepLCD = !sleepLCD;
+    } else {
+      punktMenu++;
+      if (punktMenu > 5) punktMenu = 1;
+      clear_disp = true;
+    }
+  }
+}
+
+bool get_button(uint8_t pin) {
+  if (digitalRead(pin) == LOW) {
+    delay(BUTTON_PROTECTION);
+    if (digitalRead(pin) == LOW) {
+      while (digitalRead(pin) == LOW)
+        ;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+float fetch_temp() {
+  // Call sensors.requestTemperatures() to issue a global temperature and Requests to all devices on the bus
+  sensors.requestTemperatures();
+  current_temp = sensors.getTempCByIndex(0);
+}
+
+void clock_temp() {
+  unsigned long curr1 = millis();
+  if (timeCorrection * 1000 < curr1 - prev1) {
+    prev1 = curr1;
+
+    second++;
+    if (second > 59) {
+      second = 0;
+      minute++;
+      if (minute > 59) {
+        minute = 0;
+        hour++;
+        if (hour > 23)
+          hour = 0;
+      }
+    }
+    fetch_temp();
+    checkTemp();
+    checkAlarm();
+  }
+}
+
+void checkAlarm() {
+  bool firstTime = false;
+
+  if (!isAlarmSet) {
+    if (!stateRelbyHand) digitalWrite(relayPin, HIGH);
+    digitalWrite(yellowLedPin, LOW);
+    startHeating = false;
+  } else {
+//    digitalWrite(yellowLedPin, HIGH);
+
+    if (hour == hourArlam and minute == minuteArlam and second == 0) {
+      startHeating = true;
+      firstTime = true;
+    }
+  }
+
+  if (startHeating) {
+    if (firstTime) {
+      digitalWrite(relayPin, LOW);
+      firstTime = false;
+    }
+
+    unsigned long curr2 = millis();
+    unsigned long minus = curr2 - prev2;
+    if (digitalRead(relayPin)) {
+      // unsigned long minus = curr2 - prev2;
+      timeToHeatingOnStr = String(intervalOff - minus / 60000);
+      if (intervalOff * 60000 < minus) {
+        prev2 = curr2;
+        stateRelbyHand = false;
+        digitalWrite(relayPin, LOW);
+        Serial.println("Heating ON");
+        // stateRel = stateRel == HIGH ? LOW : HIGH;
+      }
+    } else {
+      // unsigned long minus2 = curr2 - prev3;
+      timeToHeatingOffStr = String(intervalOn - minus / 60000);
+      if (intervalOn * 60000 < minus) {
+        prev2 = curr2;
+        stateRelbyHand = false;
+        digitalWrite(relayPin, HIGH);
+        Serial.println("Heating OFF");
+        // stateRel = stateRel == HIGH ? LOW : HIGH;
+      }
+    }
+  }
+}
+
+void checkTemp() {
+  if (current_temp < alarmLowTemp) digitalWrite(relayPin, HIGH);
+}
